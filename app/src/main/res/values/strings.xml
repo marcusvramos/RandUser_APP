@@ -1,0 +1,22 @@
+<resources>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string-array name="gender_array">
+        <item>Male</item>
+        <item>Female</item>
+    </string-array>
+
+    <string-array name="nationality_array">
+        <item>BR</item>
+        <item>US</item>
+        <item>GB</item>
+        <item>AU</item>
+        <item>FR</item>
+    </string-array>
+
+    <string name="app_name">RandUserFace</string>
+    <string name="select_gender">Selecione o Gênero</string>
+    <string name="select_nationality">Selecione a Nacionalidade</string>
+    <string name="navigation_drawer_open">Abrir Menu</string>
+    <string name="navigation_drawer_close">Fechar Menu</string>
+</resources>
