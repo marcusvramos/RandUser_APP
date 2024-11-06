@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,16 +16,12 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.randuserface.models.UserResponse;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.*;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
-import com.google.android.gms.maps.model.BitmapDescriptor;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.*;
 import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.MarkerOptions;
+import org.jetbrains.annotations.NotNull;
 
 public class LocationFragment extends Fragment {
     private MapView mapView;
@@ -33,6 +30,9 @@ public class LocationFragment extends Fragment {
     private UserResponse.User selectedUser;
     private TextView distanceTextView;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
+
+    private LocationRequest locationRequest;
+    private LocationCallback locationCallback;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -48,7 +48,20 @@ public class LocationFragment extends Fragment {
 
         selectedUser = MainActivity.selectedUser;
 
-        getDeviceLocation();
+        // Configurar o LocationRequest
+        locationRequest = LocationRequest.create();
+        locationRequest.setInterval(10000);
+        locationRequest.setFastestInterval(5000);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        // Implementar o LocationCallback
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NotNull LocationResult locationResult) {
+                deviceLocation = locationResult.getLastLocation();
+                mapView.getMapAsync(googleMap -> displayUserLocation(googleMap));
+            }
+        };
 
         return view;
     }
@@ -57,17 +70,8 @@ public class LocationFragment extends Fragment {
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
 
-            fusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(location -> {
-                        if (location != null) {
-                            deviceLocation = location;
-                            mapView.getMapAsync(googleMap -> {
-                                displayUserLocation(googleMap);
-                            });
-                        } else {
-                            Toast.makeText(getActivity(), "Não foi possível obter sua localização.", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+
         } else {
             // Solicitar permissão
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
@@ -76,15 +80,17 @@ public class LocationFragment extends Fragment {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getDeviceLocation();
-            } else {
-                Toast.makeText(getActivity(), "Permissão de localização não concedida.", Toast.LENGTH_SHORT).show();
-            }
-        }
+    public void onStart() {
+        super.onStart();
+        getDeviceLocation();
+        mapView.onStart();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        fusedLocationClient.removeLocationUpdates(locationCallback);
+        mapView.onStop();
     }
 
     private void displayUserLocation(GoogleMap googleMap) {
@@ -133,35 +139,5 @@ public class LocationFragment extends Fragment {
         } else {
             Toast.makeText(getActivity(), "Informações de localização do usuário não disponíveis.", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        mapView.onResume();
-    }
-
-    @Override
-    public void onPause() {
-        mapView.onPause();
-        super.onPause();
-    }
-
-    @Override
-    public void onDestroy() {
-        mapView.onDestroy();
-        super.onDestroy();
-    }
-
-    @Override
-    public void onLowMemory() {
-        mapView.onLowMemory();
-        super.onLowMemory();
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        mapView.onSaveInstanceState(outState);
     }
 }
